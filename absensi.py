@@ -21,7 +21,7 @@ creds = Credentials.from_service_account_info(
 client = gspread.authorize(creds)
 
 def compress_and_encode_photo(photo_file, max_size_kb=30):
-    """Compress and convert uploaded photo to base64 string with size limit"""
+    
     try:
         # Open image with PIL
         image = Image.open(photo_file)
@@ -89,7 +89,7 @@ def display_photo_from_base64(base64_string, width=100):
     except Exception as e:
         st.text("Error menampilkan foto")
 
-spreadsheet = client.open("Absensi Kehadiran  Praktek Kerja Lapangan") 
+spreadsheet = client.open("Absensi Kehadiran PKL") 
 worksheet = spreadsheet.worksheet("Sheet1")
 
 st.set_page_config(
