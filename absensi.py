@@ -166,20 +166,7 @@ with col1:
             
             # Tampilkan contoh foto sebelum upload
             st.markdown("**Contoh foto yang baik:**")
-            col_example1, col_example2, col_example3 = st.columns(3)
-            
-            with col_example1:
-                st.image("https://via.placeholder.com/150x200/4CAF50/FFFFFF?text=Wajah+Jelas", 
-                        caption="✅ Wajah terlihat jelas", width=150)
-            
-            with col_example2:
-                st.image("https://via.placeholder.com/150x200/2196F3/FFFFFF?text=Pencahayaan+Baik", 
-                        caption="✅ Pencahayaan cukup", width=150)
-            
-            with col_example3:
-                st.image("https://via.placeholder.com/150x200/FF9800/FFFFFF?text=Latar+Kantor", 
-                        caption="✅ Di area kantor", width=150)
-            
+            st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.jpg", caption="Contoh Foto Selfie", width=200)
             st.markdown("**Tips foto selfie yang baik:**")
             st.markdown("""
             - 📱 Pastikan wajah terlihat jelas dan tidak tertutup
