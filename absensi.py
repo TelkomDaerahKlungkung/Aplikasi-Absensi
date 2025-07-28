@@ -10,164 +10,194 @@ from PIL import Image
 from streamlit_geolocation import streamlit_geolocation
 from geopy.distance import geodesic
 
+# --- FUNGSI UNTUK INJEKSI CSS ---
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 # --- KONFIGURASI & KONEKSI ---
-# Pastikan scope untuk Sheets dan Drive ada
+# Konfigurasi dasar
 scopes = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
-
-# Ambil kredensial dari Streamlit Secrets
-creds = Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"],
-    scopes=scopes
-)
-
-# Otorisasi koneksi
-client = gspread.authorize(creds)
-
-# Buka Spreadsheet dan Worksheet
-try:
-    spreadsheet = client.open("Absensi Kehadiran PKL")
-    worksheet = spreadsheet.worksheet("Sheet1")
-except gspread.exceptions.SpreadsheetNotFound:
-    st.error("Spreadsheet 'Absensi Kehadiran PKL' tidak ditemukan. Pastikan nama sudah benar dan Service Account memiliki akses.")
-    st.stop()
-
-# --- PENGATURAN LOKASI KANTOR ---
-# Koordinat Kantor Telkom Klungkung
-KANTOR_LAT = -8.5361
-KANTOR_LON = 115.4023
-# Radius maksimal absensi dalam meter
+KANTOR_LAT = -8.5259272
+KANTOR_LON = 115.40337
 RADIUS_MAKSIMAL_METER = 50
+
+# Inisialisasi koneksi (dibuat cache agar tidak konek ulang terus-menerus)
+@st.cache_resource
+def connect_to_google_sheets():
+    try:
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=scopes
+        )
+        client = gspread.authorize(creds)
+        spreadsheet = client.open("Absensi Kehadiran PKL")
+        worksheet = spreadsheet.worksheet("Sheet1")
+        return worksheet
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error("Spreadsheet 'Absensi Kehadiran PKL' tidak ditemukan. Pastikan nama sudah benar dan Service Account memiliki akses.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Gagal terhubung ke Google Sheets: {e}")
+        st.stop()
+
+worksheet = connect_to_google_sheets()
 
 # --- FUNGSI KOMPRESI FOTO ---
 def compress_and_encode_photo(photo_file, max_size_kb=45):
-    """
-    Mengompres foto, mengubahnya menjadi Base64, dan memastikan ukurannya
-    di bawah batas aman sel Google Sheets.
-    """
     try:
         image = Image.open(photo_file)
-        # Konversi gambar yang memiliki alpha channel (transparansi) ke RGB
         if image.mode in ('RGBA', 'LA', 'P'):
             image = image.convert('RGB')
-
-        # Pengaturan awal
         max_dimension = 400
         quality = 85
-
-        # Resize jika gambar terlalu besar
         if max(image.size) > max_dimension:
             ratio = max_dimension / max(image.size)
             new_size = tuple([int(x * ratio) for x in image.size])
             image = image.resize(new_size, Image.Resampling.LANCZOS)
-
-        # Loop untuk mencoba kompresi hingga ukuran sesuai
         for _ in range(5):
             buffer = io.BytesIO()
             image.save(buffer, format='JPEG', quality=quality, optimize=True)
-            
-            # Cek ukuran Base64, Google Sheet punya limit ~50KB per sel
-            # Kita targetkan di bawah 45KB agar aman
             if (len(buffer.getvalue()) * 4 / 3) < max_size_kb * 1024:
                 buffer.seek(0)
                 encoded_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
                 return f"data:image/jpeg;base64,{encoded_string}"
-            
-            # Kurangi kualitas jika masih terlalu besar
             quality -= 15
-        
-        st.warning("Ukuran foto terlalu besar bahkan setelah kompresi maksimal. Silakan gunakan foto lain.")
+        st.warning("Ukuran foto terlalu besar setelah kompresi. Silakan gunakan foto lain.")
         return None
-
     except Exception as e:
         st.error(f"Error saat kompresi foto: {e}")
         return None
 
 # --- UI APLIKASI ---
-st.set_page_config(page_title="Absensi PKL", layout="centered", page_icon="📝")
-st.title("📝 Aplikasi Absensi PKL")
-st.write("Sistem Absensi Digital untuk Praktek Kerja Lapangan.")
+st.set_page_config(page_title="Absensi PKL", layout="wide", page_icon="🏢")
+
+# Injeksi CSS untuk styling
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    .st-emotion-cache-1y4p8pa {
+        padding-top: 2rem;
+    }
+    .st-form {
+        border: 1px solid #262730;
+        border-radius: 10px;
+        padding: 20px;
+        background-color: #0E1117;
+    }
+    .st-emotion-cache-16txtl3 {
+        padding: 2rem 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# --- HEADER ---
+st.title("🏢 Sistem Absensi Digital PKL")
+st.markdown("Selamat datang! Silakan lakukan absensi sesuai dengan status kehadiran Anda hari ini.")
 st.divider()
 
-# --- BAGIAN VERIFIKASI LOKASI ---
-st.subheader("📍 Langkah 1: Verifikasi Lokasi Anda")
-st.info(f"Anda harus berada dalam radius {RADIUS_MAKSIMAL_METER} meter dari Kantor Telkom Klungkung untuk bisa absen.")
+# --- ALUR UTAMA APLIKASI ---
+col1, col2 = st.columns([0.6, 0.4])
 
-location_data = streamlit_geolocation()
+with col1:
+    st.subheader("📋 Formulir Kehadiran")
 
-# Simpan lokasi di session state agar tidak hilang saat interaksi lain
-if location_data and location_data['latitude']:
-    st.session_state.user_location = location_data
+    # LANGKAH 1: PILIH STATUS DULU
+    status_kehadiran = st.selectbox(
+        "Pilih Status Kehadiran Anda:",
+        ["Hadir", "Izin", "Sakit"],
+        key="status_kehadiran"
+    )
 
-# Periksa dan tampilkan status lokasi jika data sudah ada
-if 'user_location' in st.session_state:
-    user_coords = (st.session_state.user_location['latitude'], st.session_state.user_location['longitude'])
-    kantor_coords = (KANTOR_LAT, KANTOR_LON)
-    
-    jarak = geodesic(user_coords, kantor_coords).meters
-    
-    if jarak <= RADIUS_MAKSIMAL_METER:
-        st.success(f"✅ Lokasi Terverifikasi! Jarak Anda dari kantor: {jarak:.2f} meter.")
-        st.session_state.lokasi_valid = True
-    else:
-        st.error(f"❌ Lokasi Tidak Valid! Jarak Anda dari kantor: {jarak:.2f} meter. Harap mendekat ke lokasi kantor.")
-        st.session_state.lokasi_valid = False
-else:
-    st.warning("Klik tombol 'Get Location' dan izinkan akses lokasi di browser Anda.")
+    # Inisialisasi status validasi lokasi
     if 'lokasi_valid' not in st.session_state:
         st.session_state.lokasi_valid = False
 
-st.divider()
+    # LANGKAH 2: VALIDASI LOKASI (HANYA JIKA 'HADIR')
+    if status_kehadiran == "Hadir":
+        st.markdown("---")
+        st.markdown("##### 📍 Verifikasi Lokasi (Wajib untuk status Hadir)")
+        
+        location_data = streamlit_geolocation()
 
-# --- BAGIAN FORMULIR ABSENSI ---
-with st.form("attendance_form", clear_on_submit=True):
-    st.subheader("📝 Langkah 2: Isi Formulir Absensi")
-    
-    nama = st.text_input("Nama Lengkap", placeholder="Masukkan nama Anda...")
-    status_kehadiran = st.selectbox("Status Kehadiran", ["Hadir", "Izin", "Sakit"])
-    
-    st.info("Foto akan dikompres secara otomatis. Wajib untuk status 'Hadir'.")
-    uploaded_photo = st.file_uploader("Pilih foto selfie sebagai bukti", type=['png', 'jpg', 'jpeg'])
-    
-    # Tombol submit hanya bisa diklik jika lokasi valid
-    submitted = st.form_submit_button("SUBMIT ABSEN", type="primary", disabled=not st.session_state.get('lokasi_valid', False))
+        if location_data and location_data.get('latitude'):
+            user_coords = (location_data['latitude'], location_data['longitude'])
+            kantor_coords = (KANTOR_LAT, KANTOR_LON)
+            jarak = geodesic(user_coords, kantor_coords).meters
 
-    if submitted:
-        # Validasi input
-        if not nama:
-            st.error("Nama tidak boleh kosong!")
-        elif status_kehadiran == "Hadir" and not uploaded_photo:
-            st.error("Foto selfie wajib diunggah untuk status 'Hadir'!")
+            if jarak <= RADIUS_MAKSIMAL_METER:
+                st.success(f"✅ Lokasi Terverifikasi! Jarak Anda dari kantor: {jarak:.2f} meter.")
+                st.session_state.lokasi_valid = True
+            else:
+                st.error(f"❌ Lokasi Tidak Valid! Jarak Anda: {jarak:.2f} meter. Harap mendekat ke lokasi kantor.")
+                st.session_state.lokasi_valid = False
         else:
-            with st.spinner("Sedang memproses absensi..."):
-                photo_base64 = ""
-                # Hanya proses foto jika ada yang diunggah
-                if uploaded_photo:
-                    photo_base64 = compress_and_encode_photo(uploaded_photo)
-
-                # Dapatkan timestamp WITA
-                bali_tz = pytz.timezone('Asia/Makassar')
-                timestamp = datetime.now(bali_tz).strftime("%Y-%m-%d %H:%M:%S WITA")
-                
-                # Simpan ke Google Sheets
-                new_row = [timestamp, nama, status_kehadiran, photo_base64]
-                worksheet.append_row(new_row)
-                
-                st.success(f"Absensi untuk **{nama}** berhasil dicatat!")
-                st.balloons()
-
-# --- BAGIAN RIWAYAT ABSENSI ---
-st.divider()
-st.subheader("Riwayat Absensi Terakhir")
-try:
-    data = worksheet.get_all_records()
-    if data:
-        df = pd.DataFrame(data)
-        # Tampilkan semua kolom kecuali kolom foto
-        st.dataframe(df.tail(10).drop(columns=['Foto'], errors='ignore'), use_container_width=True, hide_index=True)
+            st.warning("Harap izinkan akses lokasi di browser Anda untuk melanjutkan.")
+            st.session_state.lokasi_valid = False
     else:
-        st.info("Belum ada data absensi yang tercatat.")
-except Exception as e:
-    st.error(f"Gagal memuat riwayat absensi: {e}")
+        # Jika status Izin atau Sakit, tidak perlu validasi lokasi
+        st.info("ℹ️ Untuk status 'Izin' atau 'Sakit', verifikasi lokasi tidak diperlukan.")
+        st.session_state.lokasi_valid = True # Anggap lokasi valid agar form bisa disubmit
+
+    # LANGKAH 3: FORMULIR UTAMA
+    st.markdown("---")
+    with st.form("attendance_form", clear_on_submit=True):
+        nama = st.text_input("👤 Nama Lengkap", placeholder="Masukkan nama Anda...")
+        
+        if status_kehadiran == "Hadir":
+            uploaded_photo = st.file_uploader("📸 Unggah Foto Selfie (Wajib)", type=['png', 'jpg', 'jpeg'])
+        else:
+            uploaded_photo = None # Tidak ada opsi upload foto jika tidak hadir
+        
+        # Tombol submit hanya bisa diklik jika validasi terpenuhi
+        submitted = st.form_submit_button(
+            "SUBMIT ABSENSI", 
+            type="primary", 
+            use_container_width=True,
+            disabled=not st.session_state.get('lokasi_valid', False)
+        )
+
+        if submitted:
+            if not nama:
+                st.error("Nama tidak boleh kosong!")
+            elif status_kehadiran == "Hadir" and not uploaded_photo:
+                st.error("Foto selfie wajib diunggah untuk status 'Hadir'!")
+            else:
+                with st.spinner("Sedang memproses absensi..."):
+                    photo_base64 = ""
+                    if uploaded_photo:
+                        photo_base64 = compress_and_encode_photo(uploaded_photo)
+
+                    bali_tz = pytz.timezone('Asia/Makassar')
+                    timestamp = datetime.now(bali_tz).strftime("%Y-%m-%d %H:%M:%S WITA")
+                    
+                    new_row = [timestamp, nama, status_kehadiran, photo_base64]
+                    worksheet.append_row(new_row)
+                    
+                    st.success(f"Absensi untuk **{nama}** dengan status **{status_kehadiran}** berhasil dicatat!")
+                    st.balloons()
+
+# --- KOLOM KANAN UNTUK RIWAYAT ---
+with col2:
+    st.subheader("📜 Riwayat Absensi Terakhir")
+    try:
+        data = worksheet.get_all_records()
+        if data:
+            df = pd.DataFrame(data)
+            # Tampilkan semua kolom kecuali kolom foto (jika ada)
+            st.dataframe(
+                df.tail(10).drop(columns=['Foto'], errors='ignore'), 
+                use_container_width=True, 
+                hide_index=True
+            )
+        else:
+            st.info("Belum ada data absensi yang tercatat.")
+    except Exception as e:
+        st.error(f"Gagal memuat riwayat absensi: {e}")
