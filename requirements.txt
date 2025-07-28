@@ -1,6 +1,11 @@
+# requirements.txt
 streamlit
 pandas
 gspread
-google-auth
-pillow
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+Pillow
 pytz
+streamlit-geolocation  
+geopy                  
