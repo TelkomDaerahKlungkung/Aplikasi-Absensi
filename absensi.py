@@ -5,7 +5,11 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # --- KONEKSI MENGGUNAKAN STREAMLIT SECRETS ---
-scopes = ['https://www.googleapis.com/auth/spreadsheets']
+scopes = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+]
+
 
 # Mengambil kredensial dari st.secrets
 # Nama "gcp_service_account" harus sama dengan nama kategori di file secrets.toml
