@@ -118,10 +118,10 @@ with st.form("attendance_form", clear_on_submit=True):
     )
     
     # Photo upload section
-    st.subheader("Upload Foto Selfie")
+    st.subheader("Upload Foto Sebagi Bukti Kehadiran")
     st.info("Foto akan dikompres secara otomatis")
     uploaded_photo = st.file_uploader(
-        "Pilih foto selfie untuk absensi",
+        "Pilih foto untuk absensi",
         type=['png', 'jpg', 'jpeg']
     )
     
