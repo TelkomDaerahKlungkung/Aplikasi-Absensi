@@ -146,7 +146,7 @@ with col1:
             
             # Menampilkan contoh foto dalam expander
             with st.expander("Lihat Contoh Foto Absensi yang Benar"):
-                st.image("", caption="Contoh foto selfie di depan penanda lokasi kantor.")
+                st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.jpg", caption="Contoh foto selfie di depan penanda lokasi kantor.")
 
             uploaded_photo = st.file_uploader("Pilih foto selfie Anda", type=['png', 'jpg', 'jpeg'])
 
