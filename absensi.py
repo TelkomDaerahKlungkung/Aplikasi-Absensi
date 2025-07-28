@@ -10,11 +10,6 @@ from PIL import Image
 from streamlit_geolocation import streamlit_geolocation
 from geopy.distance import geodesic
 
-# --- FUNGSI UNTUK INJEKSI CSS ---
-def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
 # --- KONFIGURASI & KONEKSI ---
 # Konfigurasi dasar
 scopes = [
@@ -46,8 +41,9 @@ def connect_to_google_sheets():
 
 worksheet = connect_to_google_sheets()
 
-# --- FUNGSI KOMPRESI FOTO ---
+# --- FUNGSI BANTUAN ---
 def compress_and_encode_photo(photo_file, max_size_kb=45):
+    """Mengompres foto dan mengubahnya menjadi Base64."""
     try:
         image = Image.open(photo_file)
         if image.mode in ('RGBA', 'LA', 'P'):
@@ -97,7 +93,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
 # --- HEADER ---
 st.title("🏢 Sistem Absensi Digital PKL")
 st.markdown("Selamat datang! Silakan lakukan absensi sesuai dengan status kehadiran Anda hari ini.")
@@ -109,99 +104,64 @@ col1, col2 = st.columns([0.6, 0.4])
 with col1:
     st.subheader("📋 Formulir Kehadiran")
 
-    # LANGKAH 1: PILIH STATUS DULU
-    status_kehadiran = st.selectbox(
-        "Pilih Status Kehadiran Anda:",
-        ["Hadir", "Izin", "Sakit"],
-        key="status_kehadiran"
-    )
-
-    # Inisialisasi status validasi lokasi
+    # Inisialisasi state
     if 'lokasi_valid' not in st.session_state:
         st.session_state.lokasi_valid = False
 
-    # LANGKAH 2: VALIDASI LOKASI (HANYA JIKA 'HADIR')
-    if status_kehadiran == "Hadir":
-        st.markdown("---")
-        st.markdown("##### 📍 Verifikasi Lokasi (Wajib untuk status Hadir)")
-        
-        location_data = streamlit_geolocation()
-
-        if location_data and location_data.get('latitude'):
-            user_coords = (location_data['latitude'], location_data['longitude'])
-            kantor_coords = (KANTOR_LAT, KANTOR_LON)
-            jarak = geodesic(user_coords, kantor_coords).meters
-
-            if jarak <= RADIUS_MAKSIMAL_METER:
-                st.success(f"✅ Lokasi Terverifikasi! Jarak Anda dari kantor: {jarak:.2f} meter.")
-                st.session_state.lokasi_valid = True
-            else:
-                st.error(f"❌ Lokasi Tidak Valid! Jarak Anda: {jarak:.2f} meter. Harap mendekat ke lokasi kantor.")
-                st.session_state.lokasi_valid = False
-        else:
-            st.warning("Harap izinkan akses lokasi di browser Anda untuk melanjutkan.")
-            st.session_state.lokasi_valid = False
-    else:
-        # Jika status Izin atau Sakit, tidak perlu validasi lokasi
-        st.info("ℹ️ Untuk status 'Izin' atau 'Sakit', verifikasi lokasi tidak diperlukan.")
-        st.session_state.lokasi_valid = True # Anggap lokasi valid agar form bisa disubmit
-
-    # LANGKAH 3: FORMULIR UTAMA
-    st.markdown("---")
     with st.form("attendance_form", clear_on_submit=True):
         nama = st.text_input("👤 Nama Lengkap", placeholder="Masukkan nama Anda...")
+        status_kehadiran = st.selectbox(
+            "Pilih Status Kehadiran Anda:",
+            ["Hadir", "Izin", "Sakit"],
+            key="status_kehadiran"
+        )
         
-        # Input keterangan izin jika status adalah "Izin"
+        # Inisialisasi variabel
         keterangan_izin = ""
-        if status_kehadiran == "Izin":
-            keterangan_izin = st.text_area(
-                "📝 Keterangan Izin (Wajib)",
-                placeholder="Jelaskan alasan izin Anda...",
-                help="Contoh: Keperluan keluarga, urusan kampus, sakit ringan, dll."
-            )
-        
-        # Upload foto dengan contoh sebelumnya
+        uploaded_photo = None
+
+        # --- LOGIKA KONDISIONAL BERDASARKAN STATUS ---
         if status_kehadiran == "Hadir":
-            st.markdown("##### 📸 Upload Foto Selfie")
+            st.markdown("---")
+            st.markdown("##### 📍 Verifikasi Lokasi (Wajib untuk status Hadir)")
+            location_data = streamlit_geolocation()
+
+            if location_data and location_data.get('latitude'):
+                user_coords = (location_data['latitude'], location_data['longitude'])
+                kantor_coords = (KANTOR_LAT, KANTOR_LON)
+                jarak = geodesic(user_coords, kantor_coords).meters
+
+                if jarak <= RADIUS_MAKSIMAL_METER:
+                    st.success(f"✅ Lokasi Terverifikasi! Jarak Anda dari kantor: {jarak:.2f} meter.")
+                    st.session_state.lokasi_valid = True
+                else:
+                    st.error(f"❌ Lokasi Tidak Valid! Jarak Anda: {jarak:.2f} meter. Harap mendekat ke lokasi kantor.")
+                    st.session_state.lokasi_valid = False
+            else:
+                st.warning("Harap izinkan akses lokasi di browser untuk melanjutkan.")
+                st.session_state.lokasi_valid = False
             
-            # Tampilkan contoh foto sebelum upload
-            st.markdown("**Contoh foto yang baik:**")
-            col_example1, col_example2, col_example3 = st.columns(3)
+            st.markdown("---")
+            st.markdown("##### 📸 Unggah Foto Selfie (Wajib untuk status Hadir)")
             
-            with col_example1:
-                st.image("https://via.placeholder.com/150x200/4CAF50/FFFFFF?text=Wajah+Jelas", 
-                        caption="✅ Wajah terlihat jelas", width=150)
-            
-            with col_example2:
-                st.image("https://via.placeholder.com/150x200/2196F3/FFFFFF?text=Pencahayaan+Baik", 
-                        caption="✅ Pencahayaan cukup", width=150)
-            
-            with col_example3:
-                st.image("https://via.placeholder.com/150x200/FF9800/FFFFFF?text=Latar+Kantor", 
-                        caption="✅ Di area kantor", width=150)
-            
-            st.markdown("**Tips foto selfie yang baik:**")
-            st.markdown("""
-            - 📱 Pastikan wajah terlihat jelas dan tidak tertutup
-            - 💡 Gunakan pencahayaan yang cukup
-            - 🏢 Ambil foto di area kantor atau lokasi kerja
-            - 📐 Posisikan kamera sejajar dengan wajah
-            - 🚫 Hindari foto blur atau gelap
-            """)
-            
-            uploaded_photo = st.file_uploader(
-                "Pilih foto selfie untuk absensi",
-                type=['png', 'jpg', 'jpeg'],
-                help="Format yang didukung: PNG, JPG, JPEG. Maksimal ukuran akan dikompres otomatis."
-            )
-            
-            if uploaded_photo is not None:
-                st.image(uploaded_photo, caption="Preview foto yang akan diupload", width=200)
-                file_size = len(uploaded_photo.getvalue())
-                st.caption(f"📁 Ukuran file: {file_size / 1024:.1f} KB")
-        else:
-            uploaded_photo = None
-        
+            # Menampilkan contoh foto dalam expander
+            with st.expander("Lihat Contoh Foto Absensi yang Benar"):
+                st.image("https://drive.google.com/file/d/1DEBFAUwkjqNfE5Wj7MplC-JXhCgsi_QU/view?usp=sharing", caption="Contoh foto selfie di depan penanda lokasi kantor.")
+
+            uploaded_photo = st.file_uploader("Pilih foto selfie Anda", type=['png', 'jpg', 'jpeg'])
+
+        elif status_kehadiran == "Izin":
+            st.markdown("---")
+            st.markdown("##### ✍️ Keterangan Izin (Wajib diisi)")
+            keterangan_izin = st.text_area("Tuliskan alasan izin Anda di sini...", height=150)
+            st.session_state.lokasi_valid = True # Anggap valid agar bisa submit
+
+        else: # Status Sakit
+            st.markdown("---")
+            st.info("ℹ️ Untuk status 'Sakit', Anda bisa langsung mengirim absensi. Lampirkan surat dokter jika ada.")
+            st.session_state.lokasi_valid = True # Anggap valid agar bisa submit
+
+        st.markdown("---")
         # Tombol submit hanya bisa diklik jika validasi terpenuhi
         submitted = st.form_submit_button(
             "SUBMIT ABSENSI", 
@@ -211,31 +171,27 @@ with col1:
         )
 
         if submitted:
+            # Validasi input sebelum mengirim
             if not nama:
-                st.error("❌ Nama tidak boleh kosong!")
-            elif status_kehadiran == "Izin" and not keterangan_izin.strip():
-                st.error("❌ Keterangan izin wajib diisi untuk status 'Izin'!")
+                st.error("Nama tidak boleh kosong!")
             elif status_kehadiran == "Hadir" and not uploaded_photo:
-                st.error("❌ Foto selfie wajib diunggah untuk status 'Hadir'!")
+                st.error("Foto selfie wajib diunggah untuk status 'Hadir'!")
+            elif status_kehadiran == "Izin" and not keterangan_izin:
+                st.error("Keterangan Izin wajib diisi!")
             else:
                 with st.spinner("Sedang memproses absensi..."):
                     photo_base64 = ""
                     if uploaded_photo:
                         photo_base64 = compress_and_encode_photo(uploaded_photo)
-                        if not photo_base64:
-                            st.error("❌ Gagal memproses foto. Silakan coba lagi.")
-                            st.stop()
 
                     bali_tz = pytz.timezone('Asia/Makassar')
                     timestamp = datetime.now(bali_tz).strftime("%Y-%m-%d %H:%M:%S WITA")
                     
-                    # Update row structure untuk kolom baru
+                    # Membuat baris data sesuai urutan kolom baru
                     new_row = [timestamp, nama, status_kehadiran, photo_base64, keterangan_izin]
                     worksheet.append_row(new_row)
                     
-                    st.success(f"✅ Absensi untuk **{nama}** dengan status **{status_kehadiran}** berhasil dicatat!")
-                    if status_kehadiran == "Izin":
-                        st.info(f"📝 Keterangan: {keterangan_izin}")
+                    st.success(f"Absensi untuk **{nama}** dengan status **{status_kehadiran}** berhasil dicatat!")
                     st.balloons()
 
 # --- KOLOM KANAN UNTUK RIWAYAT ---
@@ -245,42 +201,12 @@ with col2:
         data = worksheet.get_all_records()
         if data:
             df = pd.DataFrame(data)
-            # Tampilkan kolom yang relevan (tanpa foto untuk menghemat space)
-            display_columns = ['Timestamp', 'Nama', 'Status Kehadiran', 'Keterangan Izin']
-            df_display = df[display_columns].tail(10)
-            
-            # Ganti nilai kosong di Keterangan Izin dengan "-"
-            df_display['Keterangan Izin'] = df_display['Keterangan Izin'].fillna("-").replace("", "-")
-            
+            # Tampilkan semua kolom kecuali kolom foto
             st.dataframe(
-                df_display, 
+                df.tail(10).drop(columns=['Foto'], errors='ignore'), 
                 use_container_width=True, 
-                hide_index=True,
-                column_config={
-                    "Timestamp": st.column_config.TextColumn("⏰ Waktu", width="medium"),
-                    "Nama": st.column_config.TextColumn("👤 Nama", width="medium"),
-                    "Status Kehadiran": st.column_config.TextColumn("📊 Status", width="small"),
-                    "Keterangan Izin": st.column_config.TextColumn("📝 Keterangan", width="large")
-                }
+                hide_index=True
             )
-            
-            # Statistik singkat
-            st.markdown("---")
-            st.markdown("**📊 Statistik Hari Ini:**")
-            today = datetime.now(pytz.timezone('Asia/Makassar')).strftime("%Y-%m-%d")
-            today_data = df[df['Timestamp'].str.contains(today, na=False)]
-            
-            col_stat1, col_stat2, col_stat3 = st.columns(3)
-            with col_stat1:
-                hadir_count = len(today_data[today_data['Status Kehadiran'] == 'Hadir'])
-                st.metric("✅ Hadir", hadir_count)
-            with col_stat2:
-                izin_count = len(today_data[today_data['Status Kehadiran'] == 'Izin'])
-                st.metric("📝 Izin", izin_count)
-            with col_stat3:
-                sakit_count = len(today_data[today_data['Status Kehadiran'] == 'Sakit'])
-                st.metric("🏥 Sakit", sakit_count)
-                
         else:
             st.info("Belum ada data absensi yang tercatat.")
     except Exception as e:
