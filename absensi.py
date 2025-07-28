@@ -24,50 +24,46 @@ def compress_and_encode_photo(photo_file, max_size_kb=30):
     try:
         # Open image with PIL
         image = Image.open(photo_file)
-        
-        # Convert to RGB if necessary (removes alpha channel)
+     
         if image.mode in ('RGBA', 'LA', 'P'):
             image = image.convert('RGB')
-        
-        # Calculate compression parameters
-        max_dimension = 400  # Maximum width or height
+   
+        max_dimension = 400  
         quality = 85
         
-        # Resize image if too large
+        # Resize image 
         if max(image.size) > max_dimension:
             ratio = max_dimension / max(image.size)
             new_size = tuple([int(x * ratio) for x in image.size])
             image = image.resize(new_size, Image.Resampling.LANCZOS)
         
         # Compress and encode
-        for attempt in range(5):  # Try multiple compression levels
+        for attempt in range(5):  
             buffer = io.BytesIO()
             image.save(buffer, format='JPEG', quality=quality, optimize=True)
             
-            # Check size
+    
             buffer_size = len(buffer.getvalue())
             
-            # Calculate base64 size (approximately 4/3 of original)
+           
             estimated_base64_size = (buffer_size * 4) // 3
             
-            if estimated_base64_size < max_size_kb * 1024:  # Within limit
+            if estimated_base64_size < max_size_kb * 1024:  
                 buffer.seek(0)
                 encoded_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
                 data_url = f"data:image/jpeg;base64,{encoded_string}"
                 
-                # Final check - Google Sheets has 50,000 character limit
-                if len(data_url) < 45000:  # Leave some buffer
+                
+                if len(data_url) < 45000:  
                     return data_url
             
-            # Reduce quality for next attempt
+           
             quality -= 15
             if quality < 30:
-                # If still too large, reduce dimensions further
                 new_size = tuple([int(x * 0.8) for x in image.size])
                 image = image.resize(new_size, Image.Resampling.LANCZOS)
                 quality = 85
         
-        # If all attempts failed, create a very small thumbnail
         thumbnail_size = (100, 100)
         image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
         buffer = io.BytesIO()
@@ -101,7 +97,6 @@ st.set_page_config(
     page_icon="📝"
 )
 
-# Simple header
 st.title("📝 Aplikasi Absensi PKL")
 st.write("Sistem Absensi Digital untuk Praktek Kerja Lapangan")
 
@@ -146,15 +141,15 @@ with st.form("attendance_form", clear_on_submit=True):
         else:
             with st.spinner("Sedang memproses absensi..."):
                 try:
-                    # Compress and encode photo
+                  
                     photo_base64 = compress_and_encode_photo(uploaded_photo)
                     
                     if photo_base64:
-                        # Show compression info
+                       
                         compressed_size = len(photo_base64)
                         st.info(f"Foto dikompres menjadi {compressed_size / 1024:.1f} KB")
                         
-                        # Save to spreadsheet
+                     
                         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         new_row = [timestamp, nama, status_kehadiran, photo_base64]
                         worksheet.append_row(new_row)
@@ -172,7 +167,6 @@ with st.form("attendance_form", clear_on_submit=True):
 
 st.divider()
 
-# History section with photo viewing
 st.subheader("Riwayat Absensi Terakhir")
 
 try:
@@ -180,7 +174,6 @@ try:
     if data:
         df = pd.DataFrame(data)
         
-        # Display simple table without photos first
         df_display = df.tail(10).copy()
         if 'Foto' in df_display.columns:
             df_display_table = df_display.drop(columns=['Foto'])
@@ -195,5 +188,4 @@ try:
 except Exception as e:
     st.error(f"Gagal memuat riwayat absensi: {e}")
 
-# Add instructions for viewing photos in Google Sheets
 st.divider()
