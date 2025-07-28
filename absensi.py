@@ -78,17 +78,11 @@ st.markdown("""
         padding-top: 2rem;
         padding-bottom: 2rem;
     }
-    .st-emotion-cache-1y4p8pa {
-        padding-top: 2rem;
-    }
     .st-form {
         border: 1px solid #262730;
         border-radius: 10px;
         padding: 20px;
         background-color: #0E1117;
-    }
-    .st-emotion-cache-16txtl3 {
-        padding: 2rem 2rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -104,10 +98,7 @@ col1, col2 = st.columns([0.6, 0.4])
 with col1:
     st.subheader("📋 Formulir Kehadiran")
 
-    # Inisialisasi state
-    if 'lokasi_valid' not in st.session_state:
-        st.session_state.lokasi_valid = False
-
+    # Menggunakan form untuk semua input
     with st.form("attendance_form", clear_on_submit=True):
         nama = st.text_input("👤 Nama Lengkap", placeholder="Masukkan nama Anda...")
         status_kehadiran = st.selectbox(
@@ -116,9 +107,10 @@ with col1:
             key="status_kehadiran"
         )
         
-        # Inisialisasi variabel
+        # Inisialisasi variabel untuk menampung input
         keterangan_izin = ""
         uploaded_photo = None
+        is_location_verified = False
 
         # --- LOGIKA KONDISIONAL BERDASARKAN STATUS ---
         if status_kehadiran == "Hadir":
@@ -133,45 +125,43 @@ with col1:
 
                 if jarak <= RADIUS_MAKSIMAL_METER:
                     st.success(f"✅ Lokasi Terverifikasi! Jarak Anda dari kantor: {jarak:.2f} meter.")
-                    st.session_state.lokasi_valid = True
+                    is_location_verified = True
                 else:
                     st.error(f"❌ Lokasi Tidak Valid! Jarak Anda: {jarak:.2f} meter. Harap mendekat ke lokasi kantor.")
-                    st.session_state.lokasi_valid = False
+                    is_location_verified = False
             else:
                 st.warning("Harap izinkan akses lokasi di browser untuk melanjutkan.")
-                st.session_state.lokasi_valid = False
             
             st.markdown("---")
             st.markdown("##### 📸 Unggah Foto Selfie (Wajib untuk status Hadir)")
-            
-            # Menampilkan contoh foto dalam expander
             with st.expander("Lihat Contoh Foto Absensi yang Benar"):
-                st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.jpg", caption="Contoh foto selfie di depan penanda lokasi kantor.")
-
+                st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.jpg", caption="Contoh foto yang menampilkan titik koordinat dan timestamp.", width=300)
             uploaded_photo = st.file_uploader("Pilih foto selfie Anda", type=['png', 'jpg', 'jpeg'])
 
         elif status_kehadiran == "Izin":
             st.markdown("---")
             st.markdown("##### ✍️ Keterangan Izin (Wajib diisi)")
-            keterangan_izin = st.text_area("Tuliskan alasan izin Anda di sini...", height=150)
-            st.session_state.lokasi_valid = True # Anggap valid agar bisa submit
-
+            st.info("Untuk status 'Izin', verifikasi lokasi tidak diperlukan.")
+            keterangan_izin = st.text_area("Tuliskan alasan izin Anda di sini...", height=150, key="keterangan_izin_input")
+        
         else: # Status Sakit
             st.markdown("---")
-            st.info("ℹ️ Untuk status 'Sakit', Anda bisa langsung mengirim absensi. Lampirkan surat dokter jika ada.")
-            st.session_state.lokasi_valid = True # Anggap valid agar bisa submit
+            st.info("ℹ️ Untuk status 'Sakit', Anda bisa langsung mengirim absensi. Verifikasi lokasi tidak diperlukan.")
 
         st.markdown("---")
-        # Tombol submit hanya bisa diklik jika validasi terpenuhi
+        
+        # Menentukan apakah tombol submit harus aktif
+        can_submit = (status_kehadiran == "Hadir" and is_location_verified) or (status_kehadiran in ["Izin", "Sakit"])
+
         submitted = st.form_submit_button(
             "SUBMIT ABSENSI", 
             type="primary", 
             use_container_width=True,
-            disabled=not st.session_state.get('lokasi_valid', False)
+            disabled=not can_submit
         )
 
         if submitted:
-            # Validasi input sebelum mengirim
+            # Validasi input setelah tombol ditekan
             if not nama:
                 st.error("Nama tidak boleh kosong!")
             elif status_kehadiran == "Hadir" and not uploaded_photo:
@@ -201,9 +191,9 @@ with col2:
         data = worksheet.get_all_records()
         if data:
             df = pd.DataFrame(data)
-            # Tampilkan semua kolom kecuali kolom foto
+            # Tampilkan semua kolom kecuali kolom foto dan keterangan
             st.dataframe(
-                df.tail(10).drop(columns=['Foto'], errors='ignore'), 
+                df.tail(10).drop(columns=['Foto', 'Keterangan Izin'], errors='ignore'), 
                 use_container_width=True, 
                 hide_index=True
             )
