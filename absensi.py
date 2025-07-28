@@ -144,24 +144,20 @@ with col1:
             st.markdown("##### ✍️ Keterangan Izin (Wajib diisi)")
             st.info("Untuk status 'Izin', verifikasi lokasi tidak diperlukan.")
             keterangan_izin = st.text_area("Tuliskan alasan izin Anda di sini...", height=150, key="keterangan_izin_input")
-            # Set location as verified for Izin status
-            is_location_verified = True
         
         elif status_kehadiran == "Sakit":
             st.markdown("---")
             st.info("ℹ️ Untuk status 'Sakit', Anda bisa langsung mengirim absensi. Verifikasi lokasi tidak diperlukan.")
-            # Set location as verified for Sakit status
-            is_location_verified = True
 
         st.markdown("---")
         
         # Menentukan apakah tombol submit harus aktif
         if status_kehadiran == "Hadir":
-            can_submit = is_location_verified and uploaded_photo is not None
+            can_submit = is_location_verified and uploaded_photo is not None and nama.strip()
         elif status_kehadiran == "Izin":
-            can_submit = bool(keterangan_izin.strip())
+            can_submit = bool(keterangan_izin.strip()) and nama.strip()
         else:  # Sakit
-            can_submit = True
+            can_submit = bool(nama.strip())
 
         submitted = st.form_submit_button(
             "SUBMIT ABSENSI", 
