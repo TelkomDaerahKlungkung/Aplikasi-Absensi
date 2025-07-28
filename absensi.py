@@ -24,7 +24,7 @@ spreadsheet = client.open("Absensi Kehadiran PKL")
 worksheet = spreadsheet.worksheet("Sheet1")
 
 # ID Folder di Google Drive tempat menyimpan foto
-GDRIVE_FOLDER_ID = "178Sd_teFZ9_tI6yvmwqjeV5GAxXHTOVD" 
+GDRIVE_FOLDER_ID = "1ACue7dr_p8EXzLJbkZ85NnA6Sil9tHbe" 
 
 # --- FUNGSI UNTUK UPLOAD KE GOOGLE DRIVE ---
 def upload_photo_to_drive(photo_bytes, photo_name):
