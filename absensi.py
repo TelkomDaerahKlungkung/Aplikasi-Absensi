@@ -151,10 +151,56 @@ with col1:
     with st.form("attendance_form", clear_on_submit=True):
         nama = st.text_input("👤 Nama Lengkap", placeholder="Masukkan nama Anda...")
         
+        # Input keterangan izin jika status adalah "Izin"
+        keterangan_izin = ""
+        if status_kehadiran == "Izin":
+            keterangan_izin = st.text_area(
+                "📝 Keterangan Izin (Wajib)",
+                placeholder="Jelaskan alasan izin Anda...",
+                help="Contoh: Keperluan keluarga, urusan kampus, sakit ringan, dll."
+            )
+        
+        # Upload foto dengan contoh sebelumnya
         if status_kehadiran == "Hadir":
-            uploaded_photo = st.file_uploader("📸 Unggah Foto Selfie (Wajib)", type=['png', 'jpg', 'jpeg'])
+            st.markdown("##### 📸 Upload Foto Selfie")
+            
+            # Tampilkan contoh foto sebelum upload
+            st.markdown("**Contoh foto yang baik:**")
+            col_example1, col_example2, col_example3 = st.columns(3)
+            
+            with col_example1:
+                st.image("https://via.placeholder.com/150x200/4CAF50/FFFFFF?text=Wajah+Jelas", 
+                        caption="✅ Wajah terlihat jelas", width=150)
+            
+            with col_example2:
+                st.image("https://via.placeholder.com/150x200/2196F3/FFFFFF?text=Pencahayaan+Baik", 
+                        caption="✅ Pencahayaan cukup", width=150)
+            
+            with col_example3:
+                st.image("https://via.placeholder.com/150x200/FF9800/FFFFFF?text=Latar+Kantor", 
+                        caption="✅ Di area kantor", width=150)
+            
+            st.markdown("**Tips foto selfie yang baik:**")
+            st.markdown("""
+            - 📱 Pastikan wajah terlihat jelas dan tidak tertutup
+            - 💡 Gunakan pencahayaan yang cukup
+            - 🏢 Ambil foto di area kantor atau lokasi kerja
+            - 📐 Posisikan kamera sejajar dengan wajah
+            - 🚫 Hindari foto blur atau gelap
+            """)
+            
+            uploaded_photo = st.file_uploader(
+                "Pilih foto selfie untuk absensi",
+                type=['png', 'jpg', 'jpeg'],
+                help="Format yang didukung: PNG, JPG, JPEG. Maksimal ukuran akan dikompres otomatis."
+            )
+            
+            if uploaded_photo is not None:
+                st.image(uploaded_photo, caption="Preview foto yang akan diupload", width=200)
+                file_size = len(uploaded_photo.getvalue())
+                st.caption(f"📁 Ukuran file: {file_size / 1024:.1f} KB")
         else:
-            uploaded_photo = None # Tidak ada opsi upload foto jika tidak hadir
+            uploaded_photo = None
         
         # Tombol submit hanya bisa diklik jika validasi terpenuhi
         submitted = st.form_submit_button(
@@ -166,22 +212,30 @@ with col1:
 
         if submitted:
             if not nama:
-                st.error("Nama tidak boleh kosong!")
+                st.error("❌ Nama tidak boleh kosong!")
+            elif status_kehadiran == "Izin" and not keterangan_izin.strip():
+                st.error("❌ Keterangan izin wajib diisi untuk status 'Izin'!")
             elif status_kehadiran == "Hadir" and not uploaded_photo:
-                st.error("Foto selfie wajib diunggah untuk status 'Hadir'!")
+                st.error("❌ Foto selfie wajib diunggah untuk status 'Hadir'!")
             else:
                 with st.spinner("Sedang memproses absensi..."):
                     photo_base64 = ""
                     if uploaded_photo:
                         photo_base64 = compress_and_encode_photo(uploaded_photo)
+                        if not photo_base64:
+                            st.error("❌ Gagal memproses foto. Silakan coba lagi.")
+                            st.stop()
 
                     bali_tz = pytz.timezone('Asia/Makassar')
                     timestamp = datetime.now(bali_tz).strftime("%Y-%m-%d %H:%M:%S WITA")
                     
-                    new_row = [timestamp, nama, status_kehadiran, photo_base64]
+                    # Update row structure untuk kolom baru
+                    new_row = [timestamp, nama, status_kehadiran, photo_base64, keterangan_izin]
                     worksheet.append_row(new_row)
                     
-                    st.success(f"Absensi untuk **{nama}** dengan status **{status_kehadiran}** berhasil dicatat!")
+                    st.success(f"✅ Absensi untuk **{nama}** dengan status **{status_kehadiran}** berhasil dicatat!")
+                    if status_kehadiran == "Izin":
+                        st.info(f"📝 Keterangan: {keterangan_izin}")
                     st.balloons()
 
 # --- KOLOM KANAN UNTUK RIWAYAT ---
@@ -191,12 +245,42 @@ with col2:
         data = worksheet.get_all_records()
         if data:
             df = pd.DataFrame(data)
-            # Tampilkan semua kolom kecuali kolom foto (jika ada)
+            # Tampilkan kolom yang relevan (tanpa foto untuk menghemat space)
+            display_columns = ['Timestamp', 'Nama', 'Status Kehadiran', 'Keterangan Izin']
+            df_display = df[display_columns].tail(10)
+            
+            # Ganti nilai kosong di Keterangan Izin dengan "-"
+            df_display['Keterangan Izin'] = df_display['Keterangan Izin'].fillna("-").replace("", "-")
+            
             st.dataframe(
-                df.tail(10).drop(columns=['Foto'], errors='ignore'), 
+                df_display, 
                 use_container_width=True, 
-                hide_index=True
+                hide_index=True,
+                column_config={
+                    "Timestamp": st.column_config.TextColumn("⏰ Waktu", width="medium"),
+                    "Nama": st.column_config.TextColumn("👤 Nama", width="medium"),
+                    "Status Kehadiran": st.column_config.TextColumn("📊 Status", width="small"),
+                    "Keterangan Izin": st.column_config.TextColumn("📝 Keterangan", width="large")
+                }
             )
+            
+            # Statistik singkat
+            st.markdown("---")
+            st.markdown("**📊 Statistik Hari Ini:**")
+            today = datetime.now(pytz.timezone('Asia/Makassar')).strftime("%Y-%m-%d")
+            today_data = df[df['Timestamp'].str.contains(today, na=False)]
+            
+            col_stat1, col_stat2, col_stat3 = st.columns(3)
+            with col_stat1:
+                hadir_count = len(today_data[today_data['Status Kehadiran'] == 'Hadir'])
+                st.metric("✅ Hadir", hadir_count)
+            with col_stat2:
+                izin_count = len(today_data[today_data['Status Kehadiran'] == 'Izin'])
+                st.metric("📝 Izin", izin_count)
+            with col_stat3:
+                sakit_count = len(today_data[today_data['Status Kehadiran'] == 'Sakit'])
+                st.metric("🏥 Sakit", sakit_count)
+                
         else:
             st.info("Belum ada data absensi yang tercatat.")
     except Exception as e:
