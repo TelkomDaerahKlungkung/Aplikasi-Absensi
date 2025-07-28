@@ -95,7 +95,7 @@ st.divider()
 st.subheader("📍 Langkah 1: Verifikasi Lokasi Anda")
 st.info(f"Anda harus berada dalam radius {RADIUS_MAKSIMAL_METER} meter dari Kantor Telkom Klungkung untuk bisa absen.")
 
-location_data = streamlit_geolocation(key="user_location_key")
+location_data = streamlit_geolocation()
 
 # Simpan lokasi di session state agar tidak hilang saat interaksi lain
 if location_data and location_data['latitude']:
