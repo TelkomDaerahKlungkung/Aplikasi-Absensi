@@ -188,37 +188,6 @@ try:
             df_display_table = df_display
         
         st.dataframe(df_display_table, use_container_width=True, hide_index=True)
-    
-        st.divider()
-        
-        # Enhanced expandable sections for detailed view
-        st.subheader("📋 Detail Lengkap Absensi")
-        for index, row in df.tail(5).iterrows():
-            with st.expander(f"📅 {row['Timestamp']} - {row['Nama']} ({row['Status Kehadiran']})"):
-                col1, col2 = st.columns([1, 2])
-                
-                with col1:
-                    st.markdown("**📸 Foto Absensi:**")
-                    if 'Foto' in row and row['Foto']:
-                        try:
-                            display_photo_from_base64(row['Foto'], width=200)
-                        except Exception as e:
-                            st.error("Gagal menampilkan foto")
-                    else:
-                        st.text("Tidak ada foto")
-                
-                with col2:
-                    st.markdown("**📋 Detail:**")
-                    st.write(f"**👤 Nama:** {row['Nama']}")
-                    st.write(f"**📊 Status:** {row['Status Kehadiran']}")
-                    st.write(f"**⏰ Waktu:** {row['Timestamp']}")
-                    
-                    # Add copy base64 option for debugging
-                    if 'Foto' in row and row['Foto']:
-                        if st.button(f"📋 Copy Base64 Data", key=f"copy_{index}"):
-                            st.code(row['Foto'][:100] + "...", language="text")
-                            st.info("Data base64 foto ditampilkan (100 karakter pertama)")
-    
         
     else:
         st.info("Belum ada data absensi yang tercatat.")
