@@ -107,7 +107,7 @@ with col1:
             key="status_kehadiran"
         )
         
-        # Inisialisasi variabel untuk menampung input
+        # Inisialisasi variabel default
         keterangan_izin = ""
         uploaded_photo = None
         is_location_verified = False
@@ -131,6 +131,7 @@ with col1:
                     is_location_verified = False
             else:
                 st.warning("Harap izinkan akses lokasi di browser untuk melanjutkan.")
+                is_location_verified = False
             
             st.markdown("---")
             st.markdown("##### 📸 Unggah Foto Selfie (Wajib untuk status Hadir)")
@@ -143,15 +144,24 @@ with col1:
             st.markdown("##### ✍️ Keterangan Izin (Wajib diisi)")
             st.info("Untuk status 'Izin', verifikasi lokasi tidak diperlukan.")
             keterangan_izin = st.text_area("Tuliskan alasan izin Anda di sini...", height=150, key="keterangan_izin_input")
+            # Set location as verified for Izin status
+            is_location_verified = True
         
-        else: # Status Sakit
+        elif status_kehadiran == "Sakit":
             st.markdown("---")
             st.info("ℹ️ Untuk status 'Sakit', Anda bisa langsung mengirim absensi. Verifikasi lokasi tidak diperlukan.")
+            # Set location as verified for Sakit status
+            is_location_verified = True
 
         st.markdown("---")
         
         # Menentukan apakah tombol submit harus aktif
-        can_submit = (status_kehadiran == "Hadir" and is_location_verified) or (status_kehadiran in ["Izin", "Sakit"])
+        if status_kehadiran == "Hadir":
+            can_submit = is_location_verified and uploaded_photo is not None
+        elif status_kehadiran == "Izin":
+            can_submit = bool(keterangan_izin.strip())
+        else:  # Sakit
+            can_submit = True
 
         submitted = st.form_submit_button(
             "SUBMIT ABSENSI", 
@@ -166,7 +176,9 @@ with col1:
                 st.error("Nama tidak boleh kosong!")
             elif status_kehadiran == "Hadir" and not uploaded_photo:
                 st.error("Foto selfie wajib diunggah untuk status 'Hadir'!")
-            elif status_kehadiran == "Izin" and not keterangan_izin:
+            elif status_kehadiran == "Hadir" and not is_location_verified:
+                st.error("Lokasi belum terverifikasi untuk status 'Hadir'!")
+            elif status_kehadiran == "Izin" and not keterangan_izin.strip():
                 st.error("Keterangan Izin wajib diisi!")
             else:
                 with st.spinner("Sedang memproses absensi..."):
