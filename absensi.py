@@ -188,60 +188,7 @@ try:
             df_display_table = df_display
         
         st.dataframe(df_display_table, use_container_width=True, hide_index=True)
-        
-        st.divider()
-        
-        # Add photo viewer section
-        st.subheader("📸 Lihat Foto Absensi")
-        
-        # Create options for photo selection
-        if len(df) > 0:
-            # Create list of options with names and timestamps
-            photo_options = []
-            photo_data = {}
-            
-            for index, row in df.tail(20).iterrows():  # Show last 20 records
-                if 'Foto' in row and row['Foto']:
-                    option_text = f"{row['Timestamp']} - {row['Nama']} ({row['Status Kehadiran']})"
-                    photo_options.append(option_text)
-                    photo_data[option_text] = row['Foto']
-            
-            if photo_options:
-                selected_photo = st.selectbox(
-                    "Pilih data absensi untuk melihat foto:",
-                    ["-- Pilih data absensi --"] + photo_options
-                )
-                
-                if selected_photo != "-- Pilih data absensi --":
-                    st.markdown("### Foto yang dipilih:")
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    
-                    with col2:
-                        try:
-                            # Display the selected photo
-                            photo_base64 = photo_data[selected_photo]
-                            st.image(photo_base64, caption=selected_photo, width=300)
-                            
-                            # Add download button for the photo
-                            if st.button("💾 Download Foto", key="download_photo"):
-                                # Extract base64 data for download
-                                if photo_base64.startswith('data:image'):
-                                    # Remove the data URL prefix
-                                    base64_data = photo_base64.split(',')[1]
-                                    
-                                    # Create download link
-                                    st.download_button(
-                                        label="📥 Klik untuk download",
-                                        data=base64.b64decode(base64_data),
-                                        file_name=f"foto_absensi_{selected_photo.split(' - ')[1].split(' (')[0]}_{selected_photo.split(' - ')[0].replace(':', '-').replace(' ', '_')}.jpg",
-                                        mime="image/jpeg"
-                                    )
-                        except Exception as e:
-                            st.error(f"Gagal menampilkan foto: {e}")
-                            st.info("Foto mungkin rusak atau format tidak didukung")
-            else:
-                st.info("📷 Tidak ada foto yang tersedia")
-        
+    
         st.divider()
         
         # Enhanced expandable sections for detailed view
@@ -271,26 +218,7 @@ try:
                         if st.button(f"📋 Copy Base64 Data", key=f"copy_{index}"):
                             st.code(row['Foto'][:100] + "...", language="text")
                             st.info("Data base64 foto ditampilkan (100 karakter pertama)")
-        
-        # Simple statistics
-        st.divider()
-        st.subheader("📊 Statistik Kehadiran")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            total_hadir = len(df[df['Status Kehadiran'] == 'Hadir'])
-            st.metric("Total Hadir", total_hadir)
-        with col2:
-            total_izin = len(df[df['Status Kehadiran'] == 'Izin'])
-            st.metric("Total Izin", total_izin)
-        with col3:
-            total_sakit = len(df[df['Status Kehadiran'] == 'Sakit'])
-            st.metric("Total Sakit", total_sakit)
-        
-        # Attendance rate
-        if len(df) > 0:
-            attendance_rate = (total_hadir / len(df)) * 100
-            st.progress(attendance_rate / 100)
-            st.write(f"Tingkat Kehadiran: {attendance_rate:.1f}%")
+    
         
     else:
         st.info("Belum ada data absensi yang tercatat.")
@@ -300,24 +228,3 @@ except Exception as e:
 
 # Add instructions for viewing photos in Google Sheets
 st.divider()
-st.subheader("📖 Cara Melihat Foto di Google Sheets")
-
-with st.expander("Klik untuk melihat panduan"):
-    st.markdown("""
-    ### Untuk melihat foto langsung di Google Sheets:
-    
-    1. **Buka Google Sheets** tempat data absensi disimpan
-    2. **Pilih sel yang berisi data foto** (kolom Foto)
-    3. **Copy seluruh data base64** yang dimulai dengan `data:image/jpeg;base64,`
-    4. **Buka tab browser baru** dan paste data tersebut di address bar
-    5. **Tekan Enter** - foto akan ditampilkan di browser
-    
-    ### Alternatif lain:
-    - Gunakan fitur **"Lihat Foto Absensi"** di atas untuk melihat foto dalam aplikasi ini
-    - Data base64 dapat di-decode menggunakan online base64 decoder
-    - Foto dapat didownload melalui tombol download yang tersedia
-    
-    ### Format data:
-    Data foto disimpan dalam format base64 dengan prefix:
-    `data:image/jpeg;base64,[data_encoded]`
-    """)
