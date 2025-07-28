@@ -227,47 +227,18 @@ with col1:
 
 # --- KOLOM KANAN UNTUK RIWAYAT ---
 with col2:
+        
     st.subheader("📜 Riwayat Absensi Terakhir")
     try:
         data = worksheet.get_all_records()
         if data:
             df = pd.DataFrame(data)
-            # Tampilkan kolom yang relevan (tanpa foto untuk menghemat space)
-            display_columns = ['Timestamp', 'Nama', 'Status Kehadiran', 'Keterangan Izin']
-            df_display = df[display_columns].tail(10)
-            
-            # Ganti nilai kosong di Keterangan Izin dengan "-"
-            df_display['Keterangan Izin'] = df_display['Keterangan Izin'].fillna("-").replace("", "-")
-            
+            # Tampilkan semua kolom kecuali kolom foto dan keterangan
             st.dataframe(
-                df_display, 
+                df.tail(10).drop(columns=['Foto', 'Keterangan Izin'], errors='ignore'), 
                 use_container_width=True, 
-                hide_index=True,
-                column_config={
-                    "Timestamp": st.column_config.TextColumn("⏰ Waktu", width="medium"),
-                    "Nama": st.column_config.TextColumn("👤 Nama", width="medium"),
-                    "Status Kehadiran": st.column_config.TextColumn("📊 Status", width="small"),
-                    "Keterangan Izin": st.column_config.TextColumn("📝 Keterangan", width="large")
-                }
+                hide_index=True
             )
-            
-            # Statistik singkat
-            st.markdown("---")
-            st.markdown("**📊 Statistik Hari Ini:**")
-            today = datetime.now(pytz.timezone('Asia/Makassar')).strftime("%Y-%m-%d")
-            today_data = df[df['Timestamp'].str.contains(today, na=False)]
-            
-            col_stat1, col_stat2, col_stat3 = st.columns(3)
-            with col_stat1:
-                hadir_count = len(today_data[today_data['Status Kehadiran'] == 'Hadir'])
-                st.metric("✅ Hadir", hadir_count)
-            with col_stat2:
-                izin_count = len(today_data[today_data['Status Kehadiran'] == 'Izin'])
-                st.metric("📝 Izin", izin_count)
-            with col_stat3:
-                sakit_count = len(today_data[today_data['Status Kehadiran'] == 'Sakit'])
-                st.metric("🏥 Sakit", sakit_count)
-                
         else:
             st.info("Belum ada data absensi yang tercatat.")
     except Exception as e:
