@@ -7,76 +7,8 @@ from googleapiclient.http import MediaIoBaseUpload
 from datetime import datetime
 import io
 
-# --- KONFIGURASI HALAMAN ---
-st.set_page_config(
-    page_title="Absensi PKL - Telkom", 
-    page_icon="📚",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# --- CUSTOM CSS ---
-st.markdown("""
-<style>
-    .main-header {
-        text-align: center;
-        background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    
-    .sub-header {
-        text-align: center;
-        color: #666;
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .stForm {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    
-    .form-container {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 15px;
-        margin: 1rem 0;
-    }
-    
-    .success-container {
-        background: linear-gradient(90deg, #56ab2f, #a8e6cf);
-        padding: 1rem;
-        border-radius: 10px;
-        text-align: center;
-        color: white;
-        font-weight: bold;
-    }
-    
-    .info-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 4px solid #4ECDC4;
-        margin: 1rem 0;
-    }
-    
-    .stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        text-align: center;
-        margin: 0.5rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
+# --- KONFIGURASI KONEKSI ---
+# Pastikan kedua scope ini ada
 scopes = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
@@ -92,7 +24,7 @@ spreadsheet = client.open("Absensi Kehadiran PKL")
 worksheet = spreadsheet.worksheet("Sheet1")
 
 # ID Folder di Google Drive tempat menyimpan foto
-GDRIVE_FOLDER_ID = "your_folder_id_here"  # Ganti dengan ID folder Google Drive Anda
+GDRIVE_FOLDER_ID = "178Sd_teFZ9_tI6yvmwqjeV5GAxXHTOVD" 
 
 # --- FUNGSI UNTUK UPLOAD KE GOOGLE DRIVE ---
 def upload_photo_to_drive(photo_bytes, photo_name):
@@ -129,221 +61,227 @@ def upload_photo_to_drive(photo_bytes, photo_name):
         st.error(f"Gagal mengunggah ke Google Drive: {e}")
         return None
 
-# --- ANTARMUKA APLIKASI STREAMLIT ---
-# Header Section
-st.markdown('<h1 class="main-header">🎓 ABSENSI PKL TELKOM</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">📱 Sistem Absensi Digital untuk Peserta PKL</p>', unsafe_allow_html=True)
+st.set_page_config(
+    page_title="Absensi PKL Telkom",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# Welcome Message
-current_time = datetime.now()
-current_hour = current_time.hour
-
-if 5 <= current_hour < 12:
-    greeting = "🌅 Selamat Pagi"
-elif 12 <= current_hour < 17:
-    greeting = "☀️ Selamat Siang"
-elif 17 <= current_hour < 19:
-    greeting = "🌆 Selamat Sore"
-else:
-    greeting = "🌙 Selamat Malam"
-
-st.markdown(f"""
-<div class="info-card">
-    <h3>{greeting}, Peserta PKL! 👋</h3>
-    <p>📅 <strong>Hari ini:</strong> {current_time.strftime('%A, %d %B %Y')}</p>
-    <p>🕒 <strong>Waktu:</strong> {current_time.strftime('%H:%M:%S WIB')}</p>
-</div>
+# Custom CSS
+st.markdown("""
+<style>
+    .main {
+        background-color: #f5f7ff;
+    }
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .title-container {
+        background-color: #E31937;
+        padding: 1.5rem;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .card {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+    }
+    .form-header {
+        background-color: #005593;
+        color: white;
+        padding: 0.8rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    .stButton>button {
+        background-color: #E31937;
+        color: white;
+        border: none;
+        width: 100%;
+        padding: 0.5rem 0;
+        font-weight: bold;
+        border-radius: 5px;
+    }
+    .stButton>button:hover {
+        background-color: #c0142d;
+    }
+    .history-header {
+        background-color: #005593;
+        color: white;
+        padding: 0.8rem;
+        border-radius: 5px;
+        margin: 2rem 0 1rem 0;
+        text-align: center;
+    }
+    .status-hadir {
+        background-color: #28a745;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+    }
+    .status-izin {
+        background-color: #ffc107;
+        color: black;
+        padding: 3px 8px;
+        border-radius: 12px;
+    }
+    .status-sakit {
+        background-color: #dc3545;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+    }
+    .stSelectbox label, .stFileUploader label, .stTextInput label {
+        font-weight: bold;
+    }
+    footer {
+        text-align: center;
+        margin-top: 2rem;
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+</style>
 """, unsafe_allow_html=True)
 
-# Info Section
-col1, col2, col3 = st.columns(3)
+# --- HEADER APLIKASI ---
+st.markdown('<div class="title-container"><h1>📝 SISTEM ABSENSI PKL TELKOM</h1><p>Monitoring Kehadiran Peserta PKL PT. Telkom Indonesia</p></div>', unsafe_allow_html=True)
+
+# --- TAMPILAN APLIKASI ---
+col1, col2 = st.columns([3, 2])
+
 with col1:
-    st.markdown("""
-    <div class="stat-card">
-        <h4>📋 MUDAH</h4>
-        <p>Absen dengan cepat</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="form-header"><h3>📋 Form Absensi Harian</h3></div>', unsafe_allow_html=True)
+    
+    with st.form("attendance_form", clear_on_submit=True):
+        nama_PKL = st.text_input("👤 Nama Lengkap PKL", placeholder="Masukkan nama Anda...")
+        
+        col_status, col_date = st.columns(2)
+        with col_status:
+            status_kehadiran = st.selectbox("🔵 Status Kehadiran", ["Hadir", "Izin", "Sakit"])
+        with col_date:
+            current_date = datetime.now().strftime("%d/%m/%Y")
+            st.info(f"📅 Tanggal: {current_date}")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("##### 📷 Unggah Bukti Kehadiran")
+        uploaded_photo = st.file_uploader("Unggah Foto Selfie", type=['jpg', 'png', 'jpeg'])
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        submitted = st.form_submit_button("📤 SUBMIT ABSEN")
+
+        if submitted:
+            if not nama_PKL:
+                st.warning("⚠️ Nama PKL tidak boleh kosong!")
+            else:
+                link_foto = ""
+                if uploaded_photo is not None:
+                   
+                    photo_bytes = uploaded_photo.getvalue()
+                   
+                    photo_name = f"{nama_PKL.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+                    
+                    with st.spinner("⏳ Mengunggah foto..."):
+                        link_foto = upload_photo_to_drive(photo_bytes, photo_name)
+
+                if link_foto or uploaded_photo is None:
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    # Tambahkan link_foto ke baris baru
+                    new_row = [timestamp, nama_PKL, status_kehadiran, link_foto]
+                    worksheet.append_row(new_row)
+                    st.success(f"✅ Absensi untuk **{nama_PKL}** berhasil dicatat!")
+                    if link_foto:
+                        st.markdown("##### 📸 Bukti Absensi:")
+                        st.image(uploaded_photo, width=300)
+                    st.balloons()
+                else:
+                    # Jika upload gagal tapi foto diunggah
+                    st.error("❌ Gagal mencatat absensi karena foto tidak berhasil diunggah.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="form-header"><h3>ℹ️ Informasi Absensi</h3></div>', unsafe_allow_html=True)
+    
     st.markdown("""
-    <div class="stat-card">
-        <h4>📸 SELFIE</h4>
-        <p>Upload foto absen</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown("""
-    <div class="stat-card">
-        <h4>☁️ CLOUD</h4>
-        <p>Data tersimpan aman</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("---")
-
-# Form Section
-st.markdown("### 📝 Form Absensi")
-
-with st.form("attendance_form", clear_on_submit=True):
-    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    ### 📜 Petunjuk Absensi
+    1. Isi form dengan data yang lengkap dan valid
+    2. Upload foto selfie sebagai bukti kehadiran
+    3. Pilih status sesuai kondisi Anda:
+        - **Hadir** - Untuk kehadiran normal
+        - **Izin** - Untuk ketidakhadiran dengan izin
+        - **Sakit** - Untuk ketidakhadiran karena sakit
+    4. Klik "SUBMIT ABSEN" untuk mengirimkan data
     
-    # Input Nama dengan icon
-    nama_PKL = st.text_input(
-        "👤 Nama Lengkap PKL", 
-        placeholder="Masukkan nama lengkap Anda...",
-        help="Pastikan nama sesuai dengan data PKL Anda"
-    )
+    ### ⏰ Waktu Absensi
+    - **Masuk**: 08.00 - 09.00 WIB
+    - **Pulang**: 16.00 - 17.00 WIB
     
-    # Status Kehadiran dengan emoji
-    status_options = {
-        "Hadir": "✅ Hadir",
-        "Izin": "📝 Izin", 
-        "Sakit": "🏥 Sakit"
-    }
-    status_kehadiran = st.selectbox(
-        "📊 Status Kehadiran", 
-        options=list(status_options.keys()),
-        format_func=lambda x: status_options[x]
-    )
-    
-    # Upload foto dengan styling
-    st.markdown("📸 **Upload Foto Selfie**")
-    uploaded_photo = st.file_uploader(
-        "Pilih foto selfie Anda", 
-        type=['jpg', 'png', 'jpeg'],
-        help="Format yang didukung: JPG, PNG, JPEG (Maksimal 5MB)"
-    )
-    
-    if uploaded_photo is not None:
-        st.image(uploaded_photo, caption="Preview foto Anda", width=200)
+    ### 🔔 Pemberitahuan
+    Pastikan Anda melakukan absensi tepat waktu untuk menghindari keterlambatan!
+    """)
     
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Submit button dengan styling
-    submitted = st.form_submit_button(
-        "🚀 SUBMIT ABSENSI", 
-        use_container_width=True,
-        type="primary"
-    )
-
-    if submitted:
-        if not nama_PKL:
-            st.error("❌ Nama PKL tidak boleh kosong!")
-        else:
-            # Progress bar untuk user experience
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            link_foto = ""
-            if uploaded_photo is not None:
-                status_text.text("📤 Mengunggah foto...")
-                progress_bar.progress(25)
-                
-                # Baca file sebagai bytes
-                photo_bytes = uploaded_photo.getvalue()
-                # Buat nama file unik
-                photo_name = f"{nama_PKL.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-                
-                progress_bar.progress(50)
-                link_foto = upload_photo_to_drive(photo_bytes, photo_name)
-                progress_bar.progress(75)
-
-            if link_foto or uploaded_photo is None:
-                status_text.text("💾 Menyimpan data absensi...")
-                progress_bar.progress(90)
-                
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                # Tambahkan link_foto ke baris baru
-                new_row = [timestamp, nama_PKL, status_kehadiran, link_foto]
-                worksheet.append_row(new_row)
-                
-                progress_bar.progress(100)
-                status_text.empty()
-                progress_bar.empty()
-                
-                # Success message dengan styling
-                st.markdown(f"""
-                <div class="success-container">
-                    <h3>🎉 ABSENSI BERHASIL! 🎉</h3>
-                    <p>Terima kasih <strong>{nama_PKL}</strong>!</p>
-                    <p>Status: <strong>{status_options[status_kehadiran]}</strong></p>
-                    <p>Waktu: <strong>{timestamp}</strong></p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if link_foto:
-                    st.success("📸 Foto berhasil diunggah ke Google Drive!")
-                
-                st.balloons()
-                
-                # Tips motivasi untuk PKL
-                tips = [
-                    "💪 Tetap semangat menjalani PKL!",
-                    "🌟 Setiap hari adalah kesempatan belajar baru!",
-                    "🚀 Jangan lupa catat pengalaman belajar hari ini!",
-                    "📚 PKL adalah investasi untuk masa depan!",
-                    "🎯 Konsistensi adalah kunci kesuksesan!"
-                ]
-                import random
-                st.info(f"💡 **Tips Hari Ini:** {random.choice(tips)}")
-                
-            else:
-                st.error("❌ Gagal mencatat absensi karena foto tidak berhasil diunggah.")
 
 # --- RIWAYAT ABSENSI ---
-st.markdown("---")
-st.markdown("### 📊 Riwayat Absensi Terkini")
+st.markdown('<div class="history-header"><h2>📊 RIWAYAT ABSENSI</h2></div>', unsafe_allow_html=True)
+st.markdown('<div class="card">', unsafe_allow_html=True)
 
-try:
-    # Ambil data dari Google Sheets
-    data = worksheet.get_all_records()
-    if data:
-        df = pd.DataFrame(data)
-        
-        # Tampilkan 5 data terakhir
-        if len(df) > 0:
-            recent_data = df.tail(5).iloc[::-1]  # 5 data terakhir, dibalik urutannya
+# Tampilkan riwayat absensi dari Google Sheets
+data = worksheet.get_all_records()
+if data:
+    df = pd.DataFrame(data)
+    
+    # Menambahkan styling ke DataFrame
+    def highlight_status(val):
+        if val == 'Hadir':
+            return '<span class="status-hadir">Hadir</span>'
+        elif val == 'Izin':
+            return '<span class="status-izin">Izin</span>'
+        elif val == 'Sakit':
+            return '<span class="status-sakit">Sakit</span>'
+        return val
+    
+    # Mengubah kolom timestamp untuk tampilan yang lebih baik
+    if 'Timestamp' in df.columns:
+        try:
+            df['Tanggal'] = pd.to_datetime(df['Timestamp']).dt.strftime('%d/%m/%Y')
+            df['Waktu'] = pd.to_datetime(df['Timestamp']).dt.strftime('%H:%M')
+            df = df.drop('Timestamp', axis=1)
             
-            for index, row in recent_data.iterrows():
-                with st.container():
-                    col1, col2, col3 = st.columns([2, 1, 1])
-                    
-                    with col1:
-                        st.markdown(f"**👤 {row.get('Nama', 'N/A')}**")
-                        st.markdown(f"🕒 {row.get('Timestamp', 'N/A')}")
-                    
-                    with col2:
-                        status = row.get('Status', 'N/A')
-                        if status == 'Hadir':
-                            st.markdown("✅ **Hadir**")
-                        elif status == 'Izin':
-                            st.markdown("📝 **Izin**")
-                        elif status == 'Sakit':
-                            st.markdown("🏥 **Sakit**")
-                    
-                    with col3:
-                        if row.get('Link Foto'):
-                            st.markdown("[📸 Lihat Foto]("+row.get('Link Foto')+")")
-                        else:
-                            st.markdown("📷 No Photo")
-                    
-                    st.markdown("---")
-        else:
-            st.info("📝 Belum ada data absensi.")
-    else:
-        st.info("📝 Belum ada data absensi.")
-        
-except Exception as e:
-    st.error(f"❌ Error mengambil data: {e}")
+            # Reorganisasi kolom
+            columns_order = ['Tanggal', 'Waktu', 'Nama PKL', 'Status Kehadiran', 'Link Foto']
+            df = df.reindex(columns=columns_order)
+        except Exception as e:
+            st.warning(f"Format tanggal tidak dapat diproses: {e}")
+    
+    # Mengubah nama kolom jika diperlukan
+    df = df.rename(columns={
+        'nama_PKL': 'Nama PKL',
+        'status_kehadiran': 'Status Kehadiran', 
+        'link_foto': 'Link Foto'
+    })
+    
+    # Tampilkan tabel dengan styling
+    st.markdown(
+        df.style.format({
+            'Status Kehadiran': lambda x: highlight_status(x)
+        }).to_html(escape=False, index=False),
+        unsafe_allow_html=True
+    )
+else:
+    st.info("🔍 Belum ada riwayat absensi yang dicatat.")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; padding: 1rem;">
-    <p>🏢 <strong>PT Telkom Indonesia</strong></p>
-    <p>📧 Butuh bantuan? Hubungi pembimbing PKL Anda</p>
-    <p>Made with ❤️ for PKL Students</p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<footer>© 2023 Aplikasi Absensi PKL Telkom | Developed by Mahasiswa PKL Telkom</footer>', unsafe_allow_html=True)
