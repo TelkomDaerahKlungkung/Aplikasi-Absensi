@@ -3,6 +3,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import pytz
 import io
 import base64
 from PIL import Image
@@ -88,7 +89,7 @@ def display_photo_from_base64(base64_string, width=100):
     except Exception as e:
         st.text("Error menampilkan foto")
 
-spreadsheet = client.open("Absensi Kehadiran PKL") 
+spreadsheet = client.open("Absensi Kehadiran  Praktek Kerja Lapangan") 
 worksheet = spreadsheet.worksheet("Sheet1")
 
 st.set_page_config(
@@ -102,7 +103,6 @@ st.write("Sistem Absensi Digital untuk Praktek Kerja Lapangan")
 
 st.divider()
 
-# Simple form
 with st.form("attendance_form", clear_on_submit=True):
     st.subheader("Formulir Absensi")
     
@@ -117,7 +117,7 @@ with st.form("attendance_form", clear_on_submit=True):
         ["Hadir", "Izin", "Sakit"]
     )
     
-    # Photo upload section
+ 
     st.subheader("Upload Foto Sebagi Bukti Kehadiran")
     st.info("Foto akan dikompres secara otomatis")
     uploaded_photo = st.file_uploader(
@@ -141,20 +141,24 @@ with st.form("attendance_form", clear_on_submit=True):
         else:
             with st.spinner("Sedang memproses absensi..."):
                 try:
-                  
+                    # Compress and encode photo
                     photo_base64 = compress_and_encode_photo(uploaded_photo)
                     
                     if photo_base64:
-                       
+                        # Show compression info
                         compressed_size = len(photo_base64)
                         st.info(f"Foto dikompres menjadi {compressed_size / 1024:.1f} KB")
                         
-                     
-                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        # Bali time (WITA - UTC+8)
+                        bali_tz = pytz.timezone('Asia/Makassar')  # WITA timezone
+                        bali_time = datetime.now(bali_tz)
+                        timestamp = bali_time.strftime("%Y-%m-%d %H:%M:%S WITA")
+                        
                         new_row = [timestamp, nama, status_kehadiran, photo_base64]
                         worksheet.append_row(new_row)
                         
                         st.success(f"Absensi untuk {nama} berhasil dicatat!")
+                        st.info(f"Waktu absensi: {timestamp}")
                         st.balloons()
                     else:
                         st.error("Gagal memproses foto. Silakan coba lagi.")
