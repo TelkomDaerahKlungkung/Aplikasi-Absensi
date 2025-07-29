@@ -162,12 +162,12 @@ with col1:
         
         # Upload foto dengan contoh sebelumnya
         if status_kehadiran == "Hadir":
-            st.markdown("##### 📸 Upload Foto Selfie")
+            st.markdown("##### 📸 Upload Foto Yang berisi titik koordinat dan timestamp")
             
             # Tampilkan contoh foto sebelum upload
             st.markdown("**Contoh foto yang baik:**")
             st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.jpg", caption="Contoh Foto Selfie", width=200)
-            st.markdown("**Tips foto selfie yang baik:**")
+            st.markdown("**Tips foto yang baik:**")
             st.markdown("""
             - 📱 Pastikan wajah terlihat jelas dan tidak tertutup
             - 💡 Gunakan pencahayaan yang cukup
@@ -216,7 +216,6 @@ with col1:
                     bali_tz = pytz.timezone('Asia/Makassar')
                     timestamp = datetime.now(bali_tz).strftime("%Y-%m-%d %H:%M:%S WITA")
                     
-                    # Update row structure untuk kolom baru
                     new_row = [timestamp, nama, status_kehadiran, photo_base64, keterangan_izin]
                     worksheet.append_row(new_row)
                     
@@ -225,7 +224,6 @@ with col1:
                         st.info(f"📝 Keterangan: {keterangan_izin}")
                     st.balloons()
 
-# --- KOLOM KANAN UNTUK RIWAYAT ---
 with col2:
         
     st.subheader("📜 Riwayat Absensi Terakhir")
@@ -233,7 +231,7 @@ with col2:
         data = worksheet.get_all_records()
         if data:
             df = pd.DataFrame(data)
-            # Tampilkan semua kolom kecuali kolom foto dan keterangan
+        
             st.dataframe(
                 df.tail(10).drop(columns=['Foto', 'Keterangan Izin'], errors='ignore'), 
                 use_container_width=True, 
