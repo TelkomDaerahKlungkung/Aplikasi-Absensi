@@ -166,7 +166,7 @@ with col1:
             
             # Tampilkan contoh foto sebelum upload
             st.markdown("**Contoh foto yang baik:**")
-            st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.jpg", caption="Contoh Foto Selfie", width=200)
+            st.image("https://raw.githubusercontent.com/TelkomDaerahKlungkung/Aplikasi-Absensi/main/images/Contoh%20Foto.png", caption="Contoh Foto Selfie", width=200)
             st.markdown("**Tips foto yang baik:**")
             st.markdown("""
             - 📱 Pastikan wajah terlihat jelas dan tidak tertutup
